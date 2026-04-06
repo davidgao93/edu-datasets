@@ -7,9 +7,8 @@ import pandas as pd
 import streamlit as st
 from faker import Faker
 
-st.set_page_config(page_title="BI Dataset Generator V4", layout="wide")
-st.title("📊 Custom BI Dataset Generator V4 (MicroStrategy Optimized)")
-st.markdown("Isomorphic Data Architecture with Pareto Distributions and Faker Realism.")
+st.set_page_config(page_title="EDU Dataset Generator", layout="wide")
+st.title("📊 EDU Dataset Generator")
 
 
 # --- 1. LOAD EXTERNAL CONFIGURATION ---
@@ -22,16 +21,32 @@ def load_config():
 industries = load_config()
 
 _REQUIRED_HEADER_KEYS = [
-    "ent_lvl1", "ent_lvl2", "ent_lvl3",
-    "item_lvl1", "item_lvl2", "item_lvl3",
-    "cust_id", "cust_tier", "emp_id", "emp_role",
-    "channel", "vol", "fin",
+    "ent_lvl1",
+    "ent_lvl2",
+    "ent_lvl3",
+    "item_lvl1",
+    "item_lvl2",
+    "item_lvl3",
+    "cust_id",
+    "cust_tier",
+    "emp_id",
+    "emp_role",
+    "channel",
+    "vol",
+    "fin",
 ]
 
 
 def _validate_industry_config(data):
     errors = []
-    for key in ["headers", "entity_groups", "item_groups", "customer_tiers", "employee_roles", "channels"]:
+    for key in [
+        "headers",
+        "entity_groups",
+        "item_groups",
+        "customer_tiers",
+        "employee_roles",
+        "channels",
+    ]:
         if key not in data:
             errors.append(f"Missing required key: '{key}'")
     if errors:
@@ -52,7 +67,11 @@ def _validate_industry_config(data):
             )
         else:
             for i, pair in enumerate(grps):
-                if not isinstance(pair, list) or len(pair) != 2 or not all(isinstance(s, str) for s in pair):
+                if (
+                    not isinstance(pair, list)
+                    or len(pair) != 2
+                    or not all(isinstance(s, str) for s in pair)
+                ):
                     errors.append(f"'{field}[{i}]' must be a list of exactly 2 strings")
 
     roles = data["employee_roles"]
@@ -83,7 +102,10 @@ with col1:
     if selected_ind != _ADD_SENTINEL:
         num_rows = st.slider(
             "2. Number of Fact Rows:",
-            min_value=5000, max_value=50000, value=10000, step=5000,
+            min_value=5000,
+            max_value=50000,
+            value=10000,
+            step=5000,
         )
 with col2:
     if selected_ind != _ADD_SENTINEL:
@@ -164,7 +186,9 @@ Hard constraints — the output will be rejected if any are violated:
 - Return ONLY the JSON object — no markdown, no backticks, no explanation"""
 
         st.code(prompt_text, language="text")
-        st.caption("Copy the prompt above into an LLM, then paste its output into the box below.")
+        st.caption(
+            "Copy the prompt above into an LLM, then paste its output into the box below."
+        )
 
     st.markdown("**Paste LLM output here:**")
     pasted = st.text_area(
@@ -180,7 +204,9 @@ Hard constraints — the output will be rejected if any are violated:
         elif not pasted.strip():
             st.error("Paste the LLM output before validating.")
         elif new_ind_name.strip() in industries:
-            st.error(f"'{new_ind_name.strip()}' already exists. Choose a different name.")
+            st.error(
+                f"'{new_ind_name.strip()}' already exists. Choose a different name."
+            )
         else:
             cleaned = pasted.strip()
             if cleaned.startswith("```"):
@@ -194,13 +220,22 @@ Hard constraints — the output will be rejected if any are violated:
 
                 # Handle LLM wrapping the config in {"IndustryName": {...}}
                 top_keys = set(parsed.keys())
-                expected_keys = {"headers", "entity_groups", "item_groups", "customer_tiers", "employee_roles", "channels"}
+                expected_keys = {
+                    "headers",
+                    "entity_groups",
+                    "item_groups",
+                    "customer_tiers",
+                    "employee_roles",
+                    "channels",
+                }
                 if len(parsed) == 1 and not top_keys.intersection(expected_keys):
                     parsed = list(parsed.values())[0]
 
                 errors = _validate_industry_config(parsed)
                 if errors:
-                    st.error("Validation failed — fix the following issues and try again:")
+                    st.error(
+                        "Validation failed — fix the following issues and try again:"
+                    )
                     for e in errors:
                         st.markdown(f"- {e}")
                 else:
@@ -208,12 +243,16 @@ Hard constraints — the output will be rejected if any are violated:
                     with open("config.json", "w") as f:
                         json.dump(industries, f, indent=2)
                     load_config.clear()
-                    st.toast(f"✅ '{new_ind_name.strip()}' added! Select it from the dropdown.")
+                    st.toast(
+                        f"✅ '{new_ind_name.strip()}' added! Select it from the dropdown."
+                    )
                     st.rerun()
 
             except json.JSONDecodeError as exc:
                 st.error(f"Invalid JSON: {exc}")
-                st.info("Make sure you pasted raw JSON only — no surrounding text or markdown code fences.")
+                st.info(
+                    "Make sure you pasted raw JSON only — no surrounding text or markdown code fences."
+                )
 
     st.stop()
 
@@ -233,8 +272,16 @@ def generate_isomorphic_data(ind_name, rows, cfg):
     h = cfg["headers"]
 
     item_modifiers = [
-        "Basic", "Standard", "Advanced", "Premium", "Enterprise",
-        "Essential", "Plus", "Pro", "Ultimate", "Signature",
+        "Basic",
+        "Standard",
+        "Advanced",
+        "Premium",
+        "Enterprise",
+        "Essential",
+        "Plus",
+        "Pro",
+        "Ultimate",
+        "Signature",
     ]
 
     # 1. Dim_Entity (~40 rows)
@@ -243,12 +290,14 @@ def generate_isomorphic_data(ind_name, rows, cfg):
     for group in cfg["entity_groups"]:
         for _ in range(10):
             city_name = fake.city()
-            entities.append({
-                "Entity_ID": e_id,
-                h["ent_lvl1"]: group[0],
-                h["ent_lvl2"]: group[1],
-                h["ent_lvl3"]: f"{city_name} {h['ent_lvl3']}",
-            })
+            entities.append(
+                {
+                    "Entity_ID": e_id,
+                    h["ent_lvl1"]: group[0],
+                    h["ent_lvl2"]: group[1],
+                    h["ent_lvl3"]: f"{city_name} {h['ent_lvl3']}",
+                }
+            )
             e_id += 1
     dim_entity = pd.DataFrame(entities)
 
@@ -263,12 +312,14 @@ def generate_isomorphic_data(ind_name, rows, cfg):
         for i in range(10):
             weight = np.random.pareto(a=2.0)
             price = int(np.random.uniform(50, 2000))
-            items.append({
-                "Item_ID": i_id,
-                h["item_lvl1"]: group[0],
-                h["item_lvl2"]: group[1],
-                h["item_lvl3"]: f"{group[1]} {item_modifiers[i]}",
-            })
+            items.append(
+                {
+                    "Item_ID": i_id,
+                    h["item_lvl1"]: group[0],
+                    h["item_lvl2"]: group[1],
+                    h["item_lvl3"]: f"{group[1]} {item_modifiers[i]}",
+                }
+            )
             item_weights.append(weight)
             base_prices[i_id] = price
             base_volumes[i_id] = weight
@@ -279,12 +330,18 @@ def generate_isomorphic_data(ind_name, rows, cfg):
 
     # 3. Dim_Customer (1,000 rows)
     age_brackets = ["18-25", "26-35", "36-50", "51-65", "65+"]
-    dim_customer = pd.DataFrame({
-        h["cust_id"]: range(10001, 11001),
-        "Customer_Name": [fake.name() for _ in range(1000)],
-        "Age_Bracket": np.random.choice(age_brackets, 1000, p=[0.15, 0.3, 0.3, 0.15, 0.1]),
-        h["cust_tier"]: np.random.choice(cfg["customer_tiers"], 1000, p=[0.6, 0.3, 0.1]),
-    })
+    dim_customer = pd.DataFrame(
+        {
+            h["cust_id"]: range(10001, 11001),
+            "Customer_Name": [fake.name() for _ in range(1000)],
+            "Age_Bracket": np.random.choice(
+                age_brackets, 1000, p=[0.15, 0.3, 0.3, 0.15, 0.1]
+            ),
+            h["cust_tier"]: np.random.choice(
+                cfg["customer_tiers"], 1000, p=[0.6, 0.3, 0.1]
+            ),
+        }
+    )
 
     # 4. Dim_Employee (50 rows)
     role_weights = {
@@ -292,18 +349,24 @@ def generate_isomorphic_data(ind_name, rows, cfg):
         cfg["employee_roles"][1]: 1.0,
         cfg["employee_roles"][2]: 1.5,
     }
-    dim_employee = pd.DataFrame({
-        h["emp_id"]: range(501, 551),
-        "Employee_Name": [fake.name() for _ in range(50)],
-        h["emp_role"]: np.random.choice(cfg["employee_roles"], 50, p=[0.4, 0.5, 0.1]),
-    })
+    dim_employee = pd.DataFrame(
+        {
+            h["emp_id"]: range(501, 551),
+            "Employee_Name": [fake.name() for _ in range(50)],
+            h["emp_role"]: np.random.choice(
+                cfg["employee_roles"], 50, p=[0.4, 0.5, 0.1]
+            ),
+        }
+    )
     dim_employee["_perf_weight"] = dim_employee[h["emp_role"]].map(role_weights)
 
     # 5. Dim_Channel
-    dim_channel = pd.DataFrame({
-        "Channel_ID": range(1, len(cfg["channels"]) + 1),
-        h["channel"]: cfg["channels"],
-    })
+    dim_channel = pd.DataFrame(
+        {
+            "Channel_ID": range(1, len(cfg["channels"]) + 1),
+            h["channel"]: cfg["channels"],
+        }
+    )
 
     # 6. Dim_Date (2 years)
     date_range = pd.date_range(start="2023-01-01", end="2024-12-31")
@@ -317,15 +380,17 @@ def generate_isomorphic_data(ind_name, rows, cfg):
 
     # Fact Table
     random_dates = np.random.choice(date_range, rows)
-    fact_table = pd.DataFrame({
-        "Transaction_ID": range(100000, 100000 + rows),
-        "Date": np.sort(random_dates),
-        "Entity_ID": np.random.choice(dim_entity["Entity_ID"], rows),
-        "Item_ID": np.random.choice(dim_item["Item_ID"], rows, p=item_probs),
-        h["cust_id"]: np.random.choice(dim_customer[h["cust_id"]], rows),
-        h["emp_id"]: np.random.choice(dim_employee[h["emp_id"]], rows),
-        "Channel_ID": np.random.choice(dim_channel["Channel_ID"], rows),
-    })
+    fact_table = pd.DataFrame(
+        {
+            "Transaction_ID": range(100000, 100000 + rows),
+            "Date": np.sort(random_dates),
+            "Entity_ID": np.random.choice(dim_entity["Entity_ID"], rows),
+            "Item_ID": np.random.choice(dim_item["Item_ID"], rows, p=item_probs),
+            h["cust_id"]: np.random.choice(dim_customer[h["cust_id"]], rows),
+            h["emp_id"]: np.random.choice(dim_employee[h["emp_id"]], rows),
+            "Channel_ID": np.random.choice(dim_channel["Channel_ID"], rows),
+        }
+    )
 
     fact_table["base_p"] = fact_table["Item_ID"].map(base_prices)
     fact_table["base_v"] = fact_table["Item_ID"].map(base_volumes)
@@ -340,18 +405,34 @@ def generate_isomorphic_data(ind_name, rows, cfg):
 
     fact_table[h["vol"]] = np.maximum(
         1,
-        fact_table["base_v"] * fact_table["emp_w"] * fact_table["season_mult"] * noise_v * 10,
+        fact_table["base_v"]
+        * fact_table["emp_w"]
+        * fact_table["season_mult"]
+        * noise_v
+        * 10,
     ).astype(int)
-    fact_table[h["fin"]] = (fact_table[h["vol"]] * (fact_table["base_p"] * noise_p)).round(2)
+    fact_table[h["fin"]] = (
+        fact_table[h["vol"]] * (fact_table["base_p"] * noise_p)
+    ).round(2)
 
-    fact_table = fact_table.drop(columns=["base_p", "base_v", "emp_w", "month", "season_mult"])
+    fact_table = fact_table.drop(
+        columns=["base_p", "base_v", "emp_w", "month", "season_mult"]
+    )
     dim_employee = dim_employee.drop(columns=["_perf_weight"])
 
-    return fact_table, dim_date, dim_entity, dim_item, dim_customer, dim_employee, dim_channel
+    return (
+        fact_table,
+        dim_date,
+        dim_entity,
+        dim_item,
+        dim_customer,
+        dim_employee,
+        dim_channel,
+    )
 
 
-f_fact_clean, d_date, d_ent, d_item, d_cust_clean, d_emp, d_chan = generate_isomorphic_data(
-    selected_ind, num_rows, config
+f_fact_clean, d_date, d_ent, d_item, d_cust_clean, d_emp, d_chan = (
+    generate_isomorphic_data(selected_ind, num_rows, config)
 )
 
 
@@ -379,24 +460,38 @@ def apply_dirty_data(fact_df, cust_df, vol_col, fin_col):
     # Duplicate rows (exact copies, same Transaction_ID)
     dup_idx = rng.choice(fact_dirty.index, size=50, replace=False)
     dups = fact_dirty.loc[dup_idx].copy()
-    fact_dirty = pd.concat([fact_dirty, dups]).sort_values("Date").reset_index(drop=True)
+    fact_dirty = (
+        pd.concat([fact_dirty, dups]).sort_values("Date").reset_index(drop=True)
+    )
 
     # Outliers: vol and fin inflated 50x
     outlier_idx = rng.choice(fact_dirty.index, size=20, replace=False)
-    fact_dirty.loc[outlier_idx, vol_col] = (fact_dirty.loc[outlier_idx, vol_col] * 50).astype(int)
-    fact_dirty.loc[outlier_idx, fin_col] = (fact_dirty.loc[outlier_idx, fin_col] * 50).round(2)
+    fact_dirty.loc[outlier_idx, vol_col] = (
+        fact_dirty.loc[outlier_idx, vol_col] * 50
+    ).astype(int)
+    fact_dirty.loc[outlier_idx, fin_col] = (
+        fact_dirty.loc[outlier_idx, fin_col] * 50
+    ).round(2)
 
     return fact_dirty, cust_dirty
 
 
 _DIRTY_MANIFEST = [
     ("Nulls", "30 null `Customer_Name` values in `Dim_Customer` (~3% of rows)"),
-    ("Duplicates", "50 duplicate rows in `Fact_Transactions` (exact copies, same `Transaction_ID`)"),
-    ("Outliers", "20 rows in `Fact_Transactions` with volume and financial metrics inflated 50x"),
+    (
+        "Duplicates",
+        "50 duplicate rows in `Fact_Transactions` (exact copies, same `Transaction_ID`)",
+    ),
+    (
+        "Outliers",
+        "20 rows in `Fact_Transactions` with volume and financial metrics inflated 50x",
+    ),
 ]
 
 if dirty_mode:
-    f_fact, d_cust = apply_dirty_data(f_fact_clean, d_cust_clean, hdrs["vol"], hdrs["fin"])
+    f_fact, d_cust = apply_dirty_data(
+        f_fact_clean, d_cust_clean, hdrs["vol"], hdrs["fin"]
+    )
     st.warning(
         "**Dirty Data Mode is active.** The exported dataset contains the following injected issues:\n"
         + "".join(f"\n- **{label}:** {desc}" for label, desc in _DIRTY_MANIFEST),
@@ -414,24 +509,41 @@ st.markdown(
     "Primary Keys are disabled to protect integrity, but you can edit any text cell below."
 )
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-    "Fact_Transactions", "Dim_Entity", "Dim_Item",
-    "Dim_Customer", "Dim_Employee", "Dim_Channel", "Dim_Date",
-])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+    [
+        "Fact_Transactions",
+        "Dim_Entity",
+        "Dim_Item",
+        "Dim_Customer",
+        "Dim_Employee",
+        "Dim_Channel",
+        "Dim_Date",
+    ]
+)
 
 with tab1:
     st.write("**Fact Table (Read-Only Preview):**")
     st.dataframe(f_fact.head(50), width="stretch")
 with tab2:
-    edited_ent = st.data_editor(d_ent, disabled=["Entity_ID"], hide_index=True, width="stretch")
+    edited_ent = st.data_editor(
+        d_ent, disabled=["Entity_ID"], hide_index=True, width="stretch"
+    )
 with tab3:
-    edited_item = st.data_editor(d_item, disabled=["Item_ID"], hide_index=True, width="stretch")
+    edited_item = st.data_editor(
+        d_item, disabled=["Item_ID"], hide_index=True, width="stretch"
+    )
 with tab4:
-    edited_cust = st.data_editor(d_cust, disabled=[hdrs["cust_id"]], hide_index=True, width="stretch")
+    edited_cust = st.data_editor(
+        d_cust, disabled=[hdrs["cust_id"]], hide_index=True, width="stretch"
+    )
 with tab5:
-    edited_emp = st.data_editor(d_emp, disabled=[hdrs["emp_id"]], hide_index=True, width="stretch")
+    edited_emp = st.data_editor(
+        d_emp, disabled=[hdrs["emp_id"]], hide_index=True, width="stretch"
+    )
 with tab6:
-    edited_chan = st.data_editor(d_chan, disabled=["Channel_ID"], hide_index=True, width="stretch")
+    edited_chan = st.data_editor(
+        d_chan, disabled=["Channel_ID"], hide_index=True, width="stretch"
+    )
 with tab7:
     st.write("**Dim_Date (Read-Only Preview):**")
     st.dataframe(d_date.head(15), width="stretch")
@@ -475,24 +587,30 @@ with st.expander("📋 Answer Key (Instructor Use — Always Based on Clean Data
 
         st.markdown(f"**{fin} by Quarter**")
         by_qtr = (
-            fact_dated.groupby("Quarter")[fin].sum()
-            .reset_index().sort_values("Quarter")
+            fact_dated.groupby("Quarter")[fin]
+            .sum()
+            .reset_index()
+            .sort_values("Quarter")
         )
         by_qtr[fin] = by_qtr[fin].map("{:,.0f}".format)
         st.dataframe(by_qtr, hide_index=True, width="stretch")
 
         st.markdown(f"**{fin} by {hdrs['channel']}**")
         by_chan = (
-            fact_chan.groupby(hdrs["channel"])[fin].sum()
-            .reset_index().sort_values(fin, ascending=False)
+            fact_chan.groupby(hdrs["channel"])[fin]
+            .sum()
+            .reset_index()
+            .sort_values(fin, ascending=False)
         )
         by_chan[fin] = by_chan[fin].map("{:,.0f}".format)
         st.dataframe(by_chan, hide_index=True, width="stretch")
 
         st.markdown(f"**{fin} by {hdrs['cust_tier']}**")
         by_tier = (
-            fact_cust.groupby(hdrs["cust_tier"])[fin].sum()
-            .reset_index().sort_values(fin, ascending=False)
+            fact_cust.groupby(hdrs["cust_tier"])[fin]
+            .sum()
+            .reset_index()
+            .sort_values(fin, ascending=False)
         )
         by_tier[fin] = by_tier[fin].map("{:,.0f}".format)
         st.dataframe(by_tier, hide_index=True, width="stretch")
@@ -500,24 +618,24 @@ with st.expander("📋 Answer Key (Instructor Use — Always Based on Clean Data
     with ak_right:
         st.markdown(f"**Top 5 {hdrs['ent_lvl3']} by {fin}**")
         top_ent = (
-            fact_entity.groupby(hdrs["ent_lvl3"])[fin].sum()
-            .nlargest(5).reset_index()
+            fact_entity.groupby(hdrs["ent_lvl3"])[fin].sum().nlargest(5).reset_index()
         )
         top_ent[fin] = top_ent[fin].map("{:,.0f}".format)
         st.dataframe(top_ent, hide_index=True, width="stretch")
 
         st.markdown(f"**Top 5 {hdrs['item_lvl2']} by {fin}**")
         top_item = (
-            fact_item.groupby(hdrs["item_lvl2"])[fin].sum()
-            .nlargest(5).reset_index()
+            fact_item.groupby(hdrs["item_lvl2"])[fin].sum().nlargest(5).reset_index()
         )
         top_item[fin] = top_item[fin].map("{:,.0f}".format)
         st.dataframe(top_item, hide_index=True, width="stretch")
 
         st.markdown(f"**{fin} by {hdrs['emp_role']}**")
         by_role = (
-            fact_emp.groupby(hdrs["emp_role"])[fin].sum()
-            .reset_index().sort_values(fin, ascending=False)
+            fact_emp.groupby(hdrs["emp_role"])[fin]
+            .sum()
+            .reset_index()
+            .sort_values(fin, ascending=False)
         )
         by_role[fin] = by_role[fin].map("{:,.0f}".format)
         st.dataframe(by_role, hide_index=True, width="stretch")
