@@ -285,17 +285,23 @@ def generate_isomorphic_data(ind_name, rows, cfg):
     ]
 
     # 1. Dim_Entity (~40 rows)
+    # local_latlng() returns (latitude, longitude, place_name, country_code, timezone)
+    # for real-world locations — enables geospatial map exercises.
     entities = []
     e_id = 101
     for group in cfg["entity_groups"]:
         for _ in range(10):
-            city_name = fake.city()
+            place = fake.local_latlng()
             entities.append(
                 {
                     "Entity_ID": e_id,
                     h["ent_lvl1"]: group[0],
                     h["ent_lvl2"]: group[1],
-                    h["ent_lvl3"]: f"{city_name} {h['ent_lvl3']}",
+                    h["ent_lvl3"]: f"{place[2]} {h['ent_lvl3']}",
+                    "City": place[2],
+                    "Country_Code": place[3],
+                    "Latitude": round(float(place[0]), 4),
+                    "Longitude": round(float(place[1]), 4),
                 }
             )
             e_id += 1
@@ -368,8 +374,8 @@ def generate_isomorphic_data(ind_name, rows, cfg):
         }
     )
 
-    # 6. Dim_Date (2 years)
-    date_range = pd.date_range(start="2023-01-01", end="2024-12-31")
+    # 6. Dim_Date (3 years)
+    date_range = pd.date_range(start="2023-01-01", end="2025-12-31")
     dim_date = pd.DataFrame({"Date": date_range})
     dim_date["Year"] = dim_date["Date"].dt.year
     dim_date["Quarter"] = "Q" + dim_date["Date"].dt.quarter.astype(str)
@@ -526,7 +532,10 @@ with tab1:
     st.dataframe(f_fact.head(50), width="stretch")
 with tab2:
     edited_ent = st.data_editor(
-        d_ent, disabled=["Entity_ID"], hide_index=True, width="stretch"
+        d_ent,
+        disabled=["Entity_ID", "Latitude", "Longitude"],
+        hide_index=True,
+        width="stretch",
     )
 with tab3:
     edited_item = st.data_editor(
