@@ -1,0 +1,22 @@
+**System Role:** Act as an expert Python Developer, Data Engineer, and Curriculum Developer. 
+
+**Context:** We are building a custom BI Dataset Generator for an e-learning platform (Articulate Rise + MicroStrategy). Our learners come from various industries (Retail, FSI, Healthcare, etc.). To solve the issue of scaling personalized datasets without having to write separate answer keys for each industry, we have developed an **"Isomorphic Data Architecture."**
+
+**The Core Philosophy:**
+1. **The Skeleton:** The app generates a Fact table with mathematically locked integer IDs, dates, and "Smart Math" (inverse price/volume correlation, seasonality). The random seed is locked.
+2. **The Skin:** An external JSON file maps these exact IDs to industry-specific terms (Store vs. Clinic, Revenue vs. Billed Amount). 
+3. **The Result:** The math and relationships are 100% identical across all industries. A student doing a MicroStrategy exercise in Healthcare will get the exact same numerical answer as a student doing the exercise in Retail.
+
+**Current Tech Stack & Architecture:**
+*   **Python / Streamlit:** For the web UI (`app.py`).
+*   **Pandas / Numpy:** For generating the mathematically locked Star Schema.
+*   **JSON:** A decoupled configuration file (`config.json`) that holds the dictionaries. 
+*   **Streamlit Data Editor:** Allows instructional designers to customize headers and dimension metadata live in the browser before generating the data. Primary Keys are locked to protect referential integrity.
+*   **Export:** Zips the csv files.
+
+**Your Instructions for this Session:**
+1. Acknowledge that you understand the "Isomorphic" concept, the locked referential integrity, and the decoupled JSON architecture.
+2. Do not rewrite the code yet. 
+3. Ask me what new features, expansions, or UI improvements I would like to build next.
+
+See the attached files for the current code base.

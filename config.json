@@ -1,0 +1,104 @@
+{
+  "Retail": {
+    "headers": {
+      "ent_lvl1": "Continent", "ent_lvl2": "Region", "ent_lvl3": "Store",
+      "item_lvl1": "Department", "item_lvl2": "Category", "item_lvl3": "Product",
+      "cust_id": "Customer_ID", "cust_tier": "Loyalty_Status",
+      "emp_id": "Employee_ID", "emp_role": "Job_Title",
+      "channel": "Sales_Channel",
+      "vol": "Units_Sold", "fin": "Revenue"
+    },
+    "entity_groups": [["North America", "East Coast"], ["North America", "West Coast"], 
+      ["Europe", "UK"],["Europe", "Germany"]
+    ],
+    "item_groups": [
+      ["Electronics", "Computers"],["Electronics", "Mobile Devices"], 
+      ["Apparel", "Menswear"], ["Apparel", "Womenswear"]
+    ],
+    "customer_tiers": ["Standard", "Plus", "Premium"],
+    "employee_roles": ["Trainee", "Associate", "Manager"],
+    "channels":["In-Store Walk-in", "Website", "Mobile App"]
+  },
+  "FSI": {
+    "headers": {
+      "ent_lvl1": "Territory", "ent_lvl2": "District", "ent_lvl3": "Branch",
+      "item_lvl1": "Division", "item_lvl2": "Product_Line", "item_lvl3": "Account_Type",
+      "cust_id": "Client_ID", "cust_tier": "Wealth_Tier",
+      "emp_id": "Advisor_ID", "emp_role": "Advisor_Level",
+      "channel": "Engagement_Type",
+      "vol": "New_Accounts", "fin": "Assets_Under_Management"
+    },
+    "entity_groups": [["Americas", "Northeast"], ["Americas", "Pacific"], 
+      ["EMEA", "UK & Ireland"],["EMEA", "Continental"]
+    ],
+    "item_groups": [
+      ["Retail Banking", "Checking"],["Retail Banking", "Savings"], 
+      ["Wealth Mgt", "Brokerage"],["Wealth Mgt", "Retirement"]
+    ],
+    "customer_tiers": ["Mass Market", "Affluent", "High Net Worth"],
+    "employee_roles": ["Junior Advisor", "Senior Advisor", "Partner"],
+    "channels":["Branch Visit", "Online Portal", "Call Center"]
+  },
+  "Life Sciences": {
+    "headers": {
+      "ent_lvl1": "Network", "ent_lvl2": "Region", "ent_lvl3": "Clinic",
+      "item_lvl1": "Discipline", "item_lvl2": "Specialty", "item_lvl3": "Procedure",
+      "cust_id": "Patient_ID", "cust_tier": "Insurance_Type",
+      "emp_id": "Provider_ID", "emp_role": "Provider_Role",
+      "channel": "Admission_Source",
+      "vol": "Procedures_Done", "fin": "Billed_Amount"
+    },
+    "entity_groups": [
+      ["US Health", "Northeast"], ["US Health", "West Coast"], 
+      ["EU Health", "NHS UK"],["EU Health", "DACH"]
+    ],
+    "item_groups": [
+      ["Radiology", "MRI"],["Radiology", "CT Scan"], 
+      ["Outpatient", "Consultation"], ["Outpatient", "Minor Surgery"]
+    ],
+    "customer_tiers": ["Uninsured", "Standard Co-pay", "Premium Coverage"],
+    "employee_roles": ["Resident", "Attending", "Chief of Staff"],
+    "channels":["ER Transfer", "Direct Booking", "Referral"]
+  },
+  "Public Sector": {
+    "headers": {
+      "ent_lvl1": "Jurisdiction", "ent_lvl2": "County", "ent_lvl3": "Office",
+      "item_lvl1": "Initiative", "item_lvl2": "Program", "item_lvl3": "Service",
+      "cust_id": "Citizen_ID", "cust_tier": "Priority_Status",
+      "emp_id": "Officer_ID", "emp_role": "Pay_Grade",
+      "channel": "Filing_Method",
+      "vol": "Cases_Resolved", "fin": "Funds_Disbursed"
+    },
+    "entity_groups": [["Federal", "Region 1"], ["Federal", "Region 2"], 
+      ["State", "Northern District"],["State", "Southern District"]
+    ],
+    "item_groups": [
+      ["Grants", "Education"],["Grants", "Housing"], 
+      ["Permitting", "Commercial"], ["Permitting", "Residential"]
+    ],
+    "customer_tiers": ["Standard", "Expedited", "Urgent/Vulnerable"],
+    "employee_roles":["Clerk", "Specialist", "Director"],
+    "channels": ["In-Person", "Gov Portal", "Mail-in"]
+  },
+  "SaaS": {
+    "headers": {
+      "ent_lvl1": "Global_Region", "ent_lvl2": "Sales_Theater", "ent_lvl3": "Hub",
+      "item_lvl1": "Suite", "item_lvl2": "Module", "item_lvl3": "License_Type",
+      "cust_id": "Account_ID", "cust_tier": "Support_SLA",
+      "emp_id": "Rep_ID", "emp_role": "Sales_Role",
+      "channel": "Lead_Source",
+      "vol": "Seats_Sold", "fin": "Annual_Recurring_Revenue"
+    },
+    "entity_groups": [
+      ["AMER", "US East"], ["AMER", "US West"], 
+      ["EMEA", "UK/Nordics"], ["APAC", "Australia"]
+    ],
+    "item_groups":[
+      ["CRM", "Sales Cloud"], ["CRM", "Service Cloud"], 
+      ["Analytics", "Dashboards"],["Analytics", "Data Prep"]
+    ],
+    "customer_tiers":["Standard SLA", "Premium SLA", "Mission Critical SLA"],
+    "employee_roles": ["SDR", "Account Executive", "VP Sales"],
+    "channels": ["Inbound Web", "Outbound Cold Call", "Partner/VAR"]
+  }
+}
