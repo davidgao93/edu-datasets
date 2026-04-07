@@ -20,6 +20,9 @@ def load_config():
 
 industries = load_config()
 
+# Industries present at first launch — protected from rename/delete in the management panel.
+_BUILTIN_INDUSTRIES = {"Retail", "FSI", "Life Sciences", "Public Sector", "SaaS"}
+
 _REQUIRED_HEADER_KEYS = [
     "ent_lvl1",
     "ent_lvl2",
@@ -107,6 +110,17 @@ with col1:
             value=10000,
             step=5000,
         )
+        seed = st.number_input(
+            "3. Random Seed",
+            min_value=0,
+            max_value=99999,
+            value=42,
+            step=1,
+            help=(
+                "Change the seed to produce a completely different dataset. "
+                "The Answer Key regenerates automatically to match, so any seed is valid."
+            ),
+        )
 with col2:
     if selected_ind != _ADD_SENTINEL:
         dirty_mode = st.checkbox(
@@ -116,11 +130,29 @@ with col2:
                 "into the export for data cleansing / wrangling exercises."
             ),
         )
+        if dirty_mode:
+            st.caption("Configure injection levels:")
+            null_pct = st.slider(
+                "Null Rate (%)", min_value=0, max_value=10, value=3,
+                help="Percentage of Customer_Name values set to null in Dim_Customer.",
+            )
+            dup_count = st.slider(
+                "Duplicate Rows", min_value=0, max_value=200, value=50, step=10,
+                help="Number of exact duplicate rows injected into Fact_Transactions.",
+            )
+            outlier_mult = st.slider(
+                "Outlier Multiplier", min_value=10, max_value=100, value=50, step=10,
+                help="Vol and Fin for 20 outlier rows are multiplied by this factor.",
+            )
+        else:
+            null_pct, dup_count, outlier_mult = 3, 50, 50
 
 
 # --- 3. ADD YOUR OWN INDUSTRY ---
 if selected_ind == _ADD_SENTINEL:
     st.divider()
+    if "_success_msg" in st.session_state:
+        st.success(st.session_state.pop("_success_msg"))
     st.subheader("Add New Industry")
     st.markdown(
         "Describe the industry you want to add. Copy the generated prompt into Claude, "
@@ -243,9 +275,7 @@ Hard constraints — the output will be rejected if any are violated:
                     with open("config.json", "w") as f:
                         json.dump(industries, f, indent=2)
                     load_config.clear()
-                    st.toast(
-                        f"✅ '{new_ind_name.strip()}' added! Select it from the dropdown."
-                    )
+                    st.session_state["_success_msg"] = f"✅ '{new_ind_name.strip()}' added! Select it from the dropdown."
                     st.rerun()
 
             except json.JSONDecodeError as exc:
@@ -253,6 +283,61 @@ Hard constraints — the output will be rejected if any are violated:
                 st.info(
                     "Make sure you pasted raw JSON only — no surrounding text or markdown code fences."
                 )
+
+    # --- MANAGE CUSTOM INDUSTRIES ---
+    custom_industries = [k for k in industries if k not in _BUILTIN_INDUSTRIES]
+    st.divider()
+    st.subheader("⚙️ Manage Custom Industries")
+
+    if not custom_industries:
+        st.info("No custom industries yet. Add one above and it will appear here.")
+    else:
+        mgmt_ind = st.selectbox(
+            "Select an industry to manage:",
+            options=custom_industries,
+            key="mgmt_select",
+        )
+
+        rename_col, delete_col = st.columns([2, 1])
+
+        with rename_col:
+            with st.container(border=True):
+                st.markdown("**Rename**")
+                new_name = st.text_input(
+                    "New name:", placeholder=f"e.g., {mgmt_ind} v2", key="mgmt_rename_input"
+                )
+                if st.button("Rename Industry", key="btn_rename"):
+                    new_name = new_name.strip()
+                    if not new_name:
+                        st.error("Enter a new name.")
+                    elif new_name in industries:
+                        st.error(f"'{new_name}' already exists.")
+                    else:
+                        industries[new_name] = industries.pop(mgmt_ind)
+                        with open("config.json", "w") as f:
+                            json.dump(industries, f, indent=2)
+                        load_config.clear()
+                        st.session_state["_success_msg"] = f"✅ Renamed '{mgmt_ind}' → '{new_name}'."
+                        st.rerun()
+
+        with delete_col:
+            with st.container(border=True):
+                st.markdown("**Delete**")
+                confirmed = st.checkbox(
+                    "I understand this cannot be undone.", key="del_confirm"
+                )
+                if st.button(
+                    "🗑️ Delete Industry",
+                    key="btn_delete",
+                    type="secondary",
+                    disabled=not confirmed,
+                ):
+                    del industries[mgmt_ind]
+                    with open("config.json", "w") as f:
+                        json.dump(industries, f, indent=2)
+                    load_config.clear()
+                    st.session_state["_success_msg"] = f"🗑️ '{mgmt_ind}' deleted."
+                    st.rerun()
 
     st.stop()
 
@@ -263,10 +348,9 @@ hdrs = config["headers"]
 
 
 @st.cache_data
-def generate_isomorphic_data(ind_name, rows, cfg):
-    # LOCK THE MATH & STRINGS
-    np.random.seed(42)
-    Faker.seed(42)
+def generate_isomorphic_data(ind_name, rows, cfg, seed=42):
+    np.random.seed(seed)
+    Faker.seed(seed)
     fake = Faker()
 
     h = cfg["headers"]
@@ -438,73 +522,134 @@ def generate_isomorphic_data(ind_name, rows, cfg):
 
 
 f_fact_clean, d_date, d_ent, d_item, d_cust_clean, d_emp, d_chan = (
-    generate_isomorphic_data(selected_ind, num_rows, config)
+    generate_isomorphic_data(selected_ind, num_rows, config, seed)
 )
 
 
 # --- 5. DIRTY DATA ---
 @st.cache_data
-def apply_dirty_data(fact_df, cust_df, vol_col, fin_col):
+def apply_dirty_data(fact_df, cust_df, vol_col, fin_col, null_pct=3, dup_count=50, outlier_mult=50):
     """
     Injects deterministic dirty data using a separate RNG (seed=99) that does not
-    affect the locked seed-42 math in generate_isomorphic_data.
+    affect the main seed math in generate_isomorphic_data.
 
-    Injected issues:
-      - Nulls:      30 null Customer_Name values in Dim_Customer (~3%)
-      - Duplicates: 50 duplicate rows in Fact_Transactions (same Transaction_ID)
-      - Outliers:   20 rows in Fact_Transactions with vol and fin inflated 50x
+    Parameters
+    ----------
+    null_pct     : % of Customer_Name values to null in Dim_Customer
+    dup_count    : number of exact duplicate rows to inject into Fact_Transactions
+    outlier_mult : multiplier applied to vol and fin for 20 randomly selected outlier rows
     """
     rng = np.random.default_rng(99)
 
     # Nulls in Dim_Customer
     cust_dirty = cust_df.copy()
-    null_idx = rng.choice(cust_dirty.index, size=30, replace=False)
+    null_size = max(1, int(len(cust_dirty) * null_pct / 100))
+    null_idx = rng.choice(cust_dirty.index, size=null_size, replace=False)
     cust_dirty.loc[null_idx, "Customer_Name"] = None
 
     fact_dirty = fact_df.copy()
 
     # Duplicate rows (exact copies, same Transaction_ID)
-    dup_idx = rng.choice(fact_dirty.index, size=50, replace=False)
-    dups = fact_dirty.loc[dup_idx].copy()
-    fact_dirty = (
-        pd.concat([fact_dirty, dups]).sort_values("Date").reset_index(drop=True)
-    )
+    if dup_count > 0:
+        actual_dups = min(dup_count, len(fact_dirty))
+        dup_idx = rng.choice(fact_dirty.index, size=actual_dups, replace=False)
+        dups = fact_dirty.loc[dup_idx].copy()
+        fact_dirty = pd.concat([fact_dirty, dups]).sort_values("Date").reset_index(drop=True)
 
-    # Outliers: vol and fin inflated 50x
+    # Outliers: vol and fin inflated by outlier_mult
     outlier_idx = rng.choice(fact_dirty.index, size=20, replace=False)
     fact_dirty.loc[outlier_idx, vol_col] = (
-        fact_dirty.loc[outlier_idx, vol_col] * 50
+        fact_dirty.loc[outlier_idx, vol_col] * outlier_mult
     ).astype(int)
     fact_dirty.loc[outlier_idx, fin_col] = (
-        fact_dirty.loc[outlier_idx, fin_col] * 50
+        fact_dirty.loc[outlier_idx, fin_col] * outlier_mult
     ).round(2)
 
     return fact_dirty, cust_dirty
 
 
-_DIRTY_MANIFEST = [
-    ("Nulls", "30 null `Customer_Name` values in `Dim_Customer` (~3% of rows)"),
-    (
-        "Duplicates",
-        "50 duplicate rows in `Fact_Transactions` (exact copies, same `Transaction_ID`)",
-    ),
-    (
-        "Outliers",
-        "20 rows in `Fact_Transactions` with volume and financial metrics inflated 50x",
-    ),
-]
-
 if dirty_mode:
+    null_size = max(1, int(len(d_cust_clean) * null_pct / 100))
     f_fact, d_cust = apply_dirty_data(
-        f_fact_clean, d_cust_clean, hdrs["vol"], hdrs["fin"]
+        f_fact_clean, d_cust_clean, hdrs["vol"], hdrs["fin"],
+        null_pct, dup_count, outlier_mult,
     )
     st.warning(
-        "**Dirty Data Mode is active.** The exported dataset contains the following injected issues:\n"
-        + "".join(f"\n- **{label}:** {desc}" for label, desc in _DIRTY_MANIFEST),
+        "**Dirty Data Mode is active.** Injected issues:\n"
+        f"\n- **Nulls:** {null_size} null `Customer_Name` values in `Dim_Customer` ({null_pct}% of rows)"
+        f"\n- **Duplicates:** {dup_count} duplicate rows in `Fact_Transactions` (same `Transaction_ID`)"
+        f"\n- **Outliers:** 20 rows with volume and financial metrics inflated {outlier_mult}×",
         icon="⚠️",
     )
 else:
     f_fact, d_cust = f_fact_clean, d_cust_clean
+
+
+def _build_schema_dot(h):
+    """Return a Graphviz DOT string for the star schema using the given header dict."""
+
+    def _tbl(node_id, title, pk, cols, hc, rc):
+        col_rows = "".join(
+            f'<TR><TD ALIGN="LEFT" BGCOLOR="{rc}"><FONT POINT-SIZE="9">{c}</FONT></TD></TR>'
+            for c in cols
+        )
+        label = (
+            f'<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4">'
+            f'<TR><TD BGCOLOR="{hc}"><B><FONT COLOR="white" POINT-SIZE="10">{title}</FONT></B></TD></TR>'
+            f'<TR><TD ALIGN="LEFT" BGCOLOR="{rc}"><B><FONT POINT-SIZE="9">🔑 {pk}</FONT></B></TD></TR>'
+            f'{col_rows}'
+            f'</TABLE>>'
+        )
+        return f'{node_id} [label={label} shape=plain margin="0"]'
+
+    FACT_H, FACT_R = "#1a3a5c", "#d6eaf8"
+    DIM_H,  DIM_R  = "#1d6a3a", "#d5f5e3"
+
+    nodes = [
+        _tbl("Fact", "Fact_Transactions", "Transaction_ID",
+             ["Date (FK)", "Entity_ID (FK)", "Item_ID (FK)",
+              f"{h['cust_id']} (FK)", f"{h['emp_id']} (FK)", "Channel_ID (FK)",
+              h["vol"], h["fin"]],
+             FACT_H, FACT_R),
+        _tbl("DimDate", "Dim_Date", "Date",
+             ["Year", "Quarter", "Month_Num", "Month_Name", "Day_of_Week", "Is_Weekend"],
+             DIM_H, DIM_R),
+        _tbl("DimEntity", "Dim_Entity", "Entity_ID",
+             [h["ent_lvl1"], h["ent_lvl2"], h["ent_lvl3"],
+              "City", "Country_Code", "Latitude", "Longitude"],
+             DIM_H, DIM_R),
+        _tbl("DimItem", "Dim_Item", "Item_ID",
+             [h["item_lvl1"], h["item_lvl2"], h["item_lvl3"]],
+             DIM_H, DIM_R),
+        _tbl("DimCustomer", "Dim_Customer", h["cust_id"],
+             ["Customer_Name", "Age_Bracket", h["cust_tier"]],
+             DIM_H, DIM_R),
+        _tbl("DimEmployee", "Dim_Employee", h["emp_id"],
+             ["Employee_Name", h["emp_role"]],
+             DIM_H, DIM_R),
+        _tbl("DimChannel", "Dim_Channel", "Channel_ID",
+             [h["channel"]],
+             DIM_H, DIM_R),
+    ]
+
+    edges = [
+        'Fact -> DimDate     [label=" Date"]',
+        'Fact -> DimEntity   [label=" Entity_ID"]',
+        'Fact -> DimItem     [label=" Item_ID"]',
+        f'Fact -> DimCustomer [label=" {h["cust_id"]}"]',
+        f'Fact -> DimEmployee [label=" {h["emp_id"]}"]',
+        'Fact -> DimChannel  [label=" Channel_ID"]',
+    ]
+
+    body = "\n    ".join(nodes + edges)
+    return (
+        'digraph StarSchema {\n'
+        '    graph [rankdir=LR nodesep=0.7 ranksep=2.5 bgcolor="transparent"]\n'
+        '    node  [shape=plain margin="0"]\n'
+        '    edge  [color="#555555" fontname="Helvetica" fontsize=9 fontcolor="#333333"]\n'
+        f'    {body}\n'
+        '}'
+    )
 
 
 # --- 6. CUSTOMIZATION UI (TABS) ---
@@ -515,7 +660,7 @@ st.markdown(
     "Primary Keys are disabled to protect integrity, but you can edit any text cell below."
 )
 
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
     [
         "Fact_Transactions",
         "Dim_Entity",
@@ -524,6 +669,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
         "Dim_Employee",
         "Dim_Channel",
         "Dim_Date",
+        "🗂️ Schema Diagram",
     ]
 )
 
@@ -556,119 +702,129 @@ with tab6:
 with tab7:
     st.write("**Dim_Date (Read-Only Preview):**")
     st.dataframe(d_date.head(15), width="stretch")
+with tab8:
+    st.caption(
+        "Star schema for the current industry. Column names update when you switch industries."
+    )
+    st.graphviz_chart(_build_schema_dot(hdrs))
 
 
 # --- 7. ANSWER KEY ---
+# Compute all tables here (outside the expander) so they are available
+# for both the display and the export download button.
+vol = hdrs["vol"]
+fin = hdrs["fin"]
+
+_ak_dated  = f_fact_clean.merge(d_date[["Date", "Year", "Quarter"]], on="Date")
+_ak_entity = f_fact_clean.merge(d_ent, on="Entity_ID")
+_ak_item   = f_fact_clean.merge(d_item, on="Item_ID")
+_ak_chan   = f_fact_clean.merge(d_chan, on="Channel_ID")
+_ak_emp    = f_fact_clean.merge(d_emp, on=hdrs["emp_id"])
+_ak_cust   = f_fact_clean.merge(d_cust_clean, on=hdrs["cust_id"])
+
+ak_summary = pd.DataFrame({
+    "Metric": [f"Total {fin}", f"Total {vol}", f"Avg {fin} per Transaction", "Total Transactions"],
+    "Value":  [
+        round(f_fact_clean[fin].sum(), 2),
+        int(f_fact_clean[vol].sum()),
+        round(f_fact_clean[fin].mean(), 2),
+        len(f_fact_clean),
+    ],
+})
+ak_by_year  = _ak_dated.groupby("Year")[fin].sum().reset_index()
+ak_by_qtr   = _ak_dated.groupby("Quarter")[fin].sum().reset_index().sort_values("Quarter")
+ak_by_chan  = _ak_chan.groupby(hdrs["channel"])[fin].sum().reset_index().sort_values(fin, ascending=False)
+ak_by_tier  = _ak_cust.groupby(hdrs["cust_tier"])[fin].sum().reset_index().sort_values(fin, ascending=False)
+ak_top_ent  = _ak_entity.groupby(hdrs["ent_lvl3"])[fin].sum().nlargest(5).reset_index()
+ak_top_item = _ak_item.groupby(hdrs["item_lvl2"])[fin].sum().nlargest(5).reset_index()
+ak_by_role  = _ak_emp.groupby(hdrs["emp_role"])[fin].sum().reset_index().sort_values(fin, ascending=False)
+
+_item_fin   = _ak_item.groupby("Item_ID")[fin].sum().sort_values(ascending=False)
+_cumulative = _item_fin.cumsum() / _item_fin.sum()
+ak_pareto_n   = int((_cumulative < 0.8).sum()) + 1
+ak_pareto_pct = ak_pareto_n / len(_item_fin) * 100
+_q4_mask      = _ak_dated["Quarter"] == "Q4"
+ak_q4_avg     = _ak_dated.loc[_q4_mask, fin].mean()
+ak_non_q4_avg = _ak_dated.loc[~_q4_mask, fin].mean()
+ak_validation = pd.DataFrame({
+    "Check":  ["Pareto Rule", "Q4 Seasonality"],
+    "Result": [
+        f"Top {ak_pareto_n}/{len(_item_fin)} items ({ak_pareto_pct:.0f}%) ≈ 80% of {fin}",
+        f"Q4 avg {ak_q4_avg:,.2f} vs non-Q4 {ak_non_q4_avg:,.2f} (ratio {ak_q4_avg / ak_non_q4_avg:.2f}x)",
+    ],
+})
+
+# Build the export ZIP in memory
+_ak_zip_buf = io.BytesIO()
+with zipfile.ZipFile(_ak_zip_buf, "w", zipfile.ZIP_DEFLATED) as _zf:
+    _zf.writestr("AK_Summary.csv",          ak_summary.to_csv(index=False))
+    _zf.writestr("AK_By_Year.csv",           ak_by_year.to_csv(index=False))
+    _zf.writestr("AK_By_Quarter.csv",        ak_by_qtr.to_csv(index=False))
+    _zf.writestr(f"AK_By_{hdrs['channel']}.csv",   ak_by_chan.to_csv(index=False))
+    _zf.writestr(f"AK_By_{hdrs['cust_tier']}.csv", ak_by_tier.to_csv(index=False))
+    _zf.writestr(f"AK_Top5_{hdrs['ent_lvl3']}.csv", ak_top_ent.to_csv(index=False))
+    _zf.writestr(f"AK_Top5_{hdrs['item_lvl2']}.csv", ak_top_item.to_csv(index=False))
+    _zf.writestr(f"AK_By_{hdrs['emp_role']}.csv",  ak_by_role.to_csv(index=False))
+    _zf.writestr("AK_Validation_Checks.csv", ak_validation.to_csv(index=False))
+
 st.divider()
 with st.expander("📋 Answer Key (Instructor Use — Always Based on Clean Data)"):
-    vol = hdrs["vol"]
-    fin = hdrs["fin"]
-
-    # Pre-join clean tables for analysis
-    fact_dated = f_fact_clean.merge(d_date[["Date", "Year", "Quarter"]], on="Date")
-    fact_entity = f_fact_clean.merge(d_ent, on="Entity_ID")
-    fact_item = f_fact_clean.merge(d_item, on="Item_ID")
-    fact_chan = f_fact_clean.merge(d_chan, on="Channel_ID")
-    fact_emp = f_fact_clean.merge(d_emp, on=hdrs["emp_id"])
-    fact_cust = f_fact_clean.merge(d_cust_clean, on=hdrs["cust_id"])
-
-    # Summary metrics
-    total_fin = f_fact_clean[fin].sum()
-    total_vol = int(f_fact_clean[vol].sum())
-    avg_fin_txn = f_fact_clean[fin].mean()
-    n_txns = len(f_fact_clean)
+    st.download_button(
+        label="⬇️ Download Answer Key (ZIP of CSVs)",
+        data=_ak_zip_buf.getvalue(),
+        file_name=f"{selected_ind}_Seed{seed}_Answer_Key.zip",
+        mime="application/zip",
+    )
+    st.divider()
 
     st.markdown("#### Summary")
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric(f"Total {fin}", f"{total_fin:,.0f}")
-    m2.metric(f"Total {vol}", f"{total_vol:,}")
-    m3.metric(f"Avg {fin} / Transaction", f"{avg_fin_txn:,.2f}")
-    m4.metric("Total Transactions", f"{n_txns:,}")
+    m1.metric(f"Total {fin}",             f"{ak_summary.loc[0, 'Value']:,.0f}")
+    m2.metric(f"Total {vol}",             f"{ak_summary.loc[1, 'Value']:,}")
+    m3.metric(f"Avg {fin} / Transaction", f"{ak_summary.loc[2, 'Value']:,.2f}")
+    m4.metric("Total Transactions",       f"{ak_summary.loc[3, 'Value']:,}")
 
     st.markdown("#### Breakdown by Dimension")
     ak_left, ak_right = st.columns(2)
 
+    def _fmt(df, col):
+        """Return a display copy with the numeric column formatted."""
+        out = df.copy()
+        out[col] = out[col].map("{:,.0f}".format)
+        return out
+
     with ak_left:
         st.markdown(f"**{fin} by Year**")
-        by_year = fact_dated.groupby("Year")[fin].sum().reset_index()
-        by_year[fin] = by_year[fin].map("{:,.0f}".format)
-        st.dataframe(by_year, hide_index=True, width="stretch")
+        st.dataframe(_fmt(ak_by_year, fin), hide_index=True, width="stretch")
 
         st.markdown(f"**{fin} by Quarter**")
-        by_qtr = (
-            fact_dated.groupby("Quarter")[fin]
-            .sum()
-            .reset_index()
-            .sort_values("Quarter")
-        )
-        by_qtr[fin] = by_qtr[fin].map("{:,.0f}".format)
-        st.dataframe(by_qtr, hide_index=True, width="stretch")
+        st.dataframe(_fmt(ak_by_qtr, fin), hide_index=True, width="stretch")
 
         st.markdown(f"**{fin} by {hdrs['channel']}**")
-        by_chan = (
-            fact_chan.groupby(hdrs["channel"])[fin]
-            .sum()
-            .reset_index()
-            .sort_values(fin, ascending=False)
-        )
-        by_chan[fin] = by_chan[fin].map("{:,.0f}".format)
-        st.dataframe(by_chan, hide_index=True, width="stretch")
+        st.dataframe(_fmt(ak_by_chan, fin), hide_index=True, width="stretch")
 
         st.markdown(f"**{fin} by {hdrs['cust_tier']}**")
-        by_tier = (
-            fact_cust.groupby(hdrs["cust_tier"])[fin]
-            .sum()
-            .reset_index()
-            .sort_values(fin, ascending=False)
-        )
-        by_tier[fin] = by_tier[fin].map("{:,.0f}".format)
-        st.dataframe(by_tier, hide_index=True, width="stretch")
+        st.dataframe(_fmt(ak_by_tier, fin), hide_index=True, width="stretch")
 
     with ak_right:
         st.markdown(f"**Top 5 {hdrs['ent_lvl3']} by {fin}**")
-        top_ent = (
-            fact_entity.groupby(hdrs["ent_lvl3"])[fin].sum().nlargest(5).reset_index()
-        )
-        top_ent[fin] = top_ent[fin].map("{:,.0f}".format)
-        st.dataframe(top_ent, hide_index=True, width="stretch")
+        st.dataframe(_fmt(ak_top_ent, fin), hide_index=True, width="stretch")
 
         st.markdown(f"**Top 5 {hdrs['item_lvl2']} by {fin}**")
-        top_item = (
-            fact_item.groupby(hdrs["item_lvl2"])[fin].sum().nlargest(5).reset_index()
-        )
-        top_item[fin] = top_item[fin].map("{:,.0f}".format)
-        st.dataframe(top_item, hide_index=True, width="stretch")
+        st.dataframe(_fmt(ak_top_item, fin), hide_index=True, width="stretch")
 
         st.markdown(f"**{fin} by {hdrs['emp_role']}**")
-        by_role = (
-            fact_emp.groupby(hdrs["emp_role"])[fin]
-            .sum()
-            .reset_index()
-            .sort_values(fin, ascending=False)
-        )
-        by_role[fin] = by_role[fin].map("{:,.0f}".format)
-        st.dataframe(by_role, hide_index=True, width="stretch")
+        st.dataframe(_fmt(ak_by_role, fin), hide_index=True, width="stretch")
 
     st.markdown("#### Validation Checks")
-
-    # Pareto insight
-    item_fin = fact_item.groupby("Item_ID")[fin].sum().sort_values(ascending=False)
-    cumulative = item_fin.cumsum() / item_fin.sum()
-    pareto_n = int((cumulative < 0.8).sum()) + 1
-    pareto_pct = pareto_n / len(item_fin) * 100
     st.info(
-        f"**Pareto:** Top **{pareto_n}** of {len(item_fin)} items "
-        f"({pareto_pct:.0f}% of catalog) account for ~80% of total {fin}."
+        f"**Pareto:** Top **{ak_pareto_n}** of {len(_item_fin)} items "
+        f"({ak_pareto_pct:.0f}% of catalog) account for ~80% of total {fin}."
     )
-
-    # Q4 seasonality confirmation
-    q4_mask = fact_dated["Quarter"] == "Q4"
-    q4_avg = fact_dated.loc[q4_mask, fin].mean()
-    non_q4_avg = fact_dated.loc[~q4_mask, fin].mean()
     st.info(
         f"**Q4 Seasonality:** Avg {fin} per transaction — "
-        f"Q4: **{q4_avg:,.2f}** vs. non-Q4: **{non_q4_avg:,.2f}** "
-        f"(ratio: {q4_avg / non_q4_avg:.2f}x, expected ~1.5x)"
+        f"Q4: **{ak_q4_avg:,.2f}** vs. non-Q4: **{ak_non_q4_avg:,.2f}** "
+        f"(ratio: {ak_q4_avg / ak_non_q4_avg:.2f}x, expected ~1.5x)"
     )
 
 
@@ -693,3 +849,77 @@ st.download_button(
     mime="application/zip",
     type="primary",
 )
+
+# --- 9. COHORT BATCH EXPORT ---
+st.divider()
+with st.expander("🎓 Cohort Batch Export (Instructor Use)"):
+    st.markdown(
+        "Generate datasets for multiple industries from a single seed in one ZIP. "
+        "Each industry becomes its own subfolder — distribute the file to your cohort "
+        "and every learner's dataset shares the same underlying math and answer key."
+    )
+
+    col_bi, col_br, col_bs = st.columns([3, 1, 1])
+    with col_bi:
+        batch_inds = st.multiselect(
+            "Industries to include:",
+            options=list(industries.keys()),
+            default=[selected_ind],
+            key="batch_inds",
+        )
+    with col_br:
+        batch_rows = st.number_input(
+            "Rows per dataset",
+            min_value=5000, max_value=50000, value=int(num_rows), step=5000,
+            key="batch_rows",
+        )
+    with col_bs:
+        batch_seed = st.number_input(
+            "Seed",
+            min_value=0, max_value=99999, value=int(seed), step=1,
+            key="batch_seed",
+        )
+
+    if st.button(
+        f"Generate Cohort ZIP  ({len(batch_inds)} {'industry' if len(batch_inds) == 1 else 'industries'})",
+        type="primary",
+        disabled=len(batch_inds) == 0,
+        key="btn_cohort",
+    ):
+        cohort_buf = io.BytesIO()
+        bar = st.progress(0, text="Starting…")
+        with zipfile.ZipFile(cohort_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for i, ind_name in enumerate(batch_inds):
+                bar.progress(i / len(batch_inds), text=f"Generating {ind_name}…")
+                cfg = industries[ind_name]
+                fact, ddate, dent, ditem, dcust, demp, dchan = generate_isomorphic_data(
+                    ind_name, int(batch_rows), cfg, int(batch_seed)
+                )
+                prefix = f"{ind_name}_Seed{int(batch_seed)}/"
+                zf.writestr(prefix + "Fact_Transactions.csv", fact.to_csv(index=False))
+                zf.writestr(prefix + "Dim_Date.csv",          ddate.to_csv(index=False))
+                zf.writestr(prefix + "Dim_Entity.csv",        dent.to_csv(index=False))
+                zf.writestr(prefix + "Dim_Item.csv",          ditem.to_csv(index=False))
+                zf.writestr(prefix + "Dim_Customer.csv",      dcust.to_csv(index=False))
+                zf.writestr(prefix + "Dim_Employee.csv",      demp.to_csv(index=False))
+                zf.writestr(prefix + "Dim_Channel.csv",       dchan.to_csv(index=False))
+            bar.progress(1.0, text="Done!")
+        bar.empty()
+        st.session_state["_cohort_zip"]   = cohort_buf.getvalue()
+        st.session_state["_cohort_fname"] = (
+            f"Cohort_Seed{int(batch_seed)}_{len(batch_inds)}industries.zip"
+        )
+        st.session_state["_cohort_label"] = (
+            f"⬇️ Download Cohort ZIP — {len(batch_inds)} "
+            f"{'industry' if len(batch_inds) == 1 else 'industries'}, "
+            f"Seed {int(batch_seed)}, {int(batch_rows):,} rows each"
+        )
+
+    if "_cohort_zip" in st.session_state:
+        st.download_button(
+            label=st.session_state["_cohort_label"],
+            data=st.session_state["_cohort_zip"],
+            file_name=st.session_state["_cohort_fname"],
+            mime="application/zip",
+            key="dl_cohort",
+        )

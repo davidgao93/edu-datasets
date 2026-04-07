@@ -406,5 +406,73 @@
       "Mobile_App",
       "Delivery_Partner"
     ]
+  },
+  "Donut Shop": {
+    "headers": {
+      "ent_lvl1": "Market_Region",
+      "ent_lvl2": "City_Cluster",
+      "ent_lvl3": "Shop",
+      "item_lvl1": "Menu_Department",
+      "item_lvl2": "Product_Category",
+      "item_lvl3": "Donut_SKU",
+      "cust_id": "Customer_ID",
+      "cust_tier": "Loyalty_Tier",
+      "emp_id": "Crew_ID",
+      "emp_role": "Crew_Role",
+      "channel": "Sales_Channel",
+      "vol": "Items_Sold",
+      "fin": "Gross_Sales"
+    },
+    "entity_groups": [
+      [
+        "North_Region",
+        "Metro_Downtown"
+      ],
+      [
+        "North_Region",
+        "Suburban_Ring"
+      ],
+      [
+        "South_Region",
+        "Coastal_Tourist"
+      ],
+      [
+        "West_Region",
+        "University_District"
+      ]
+    ],
+    "item_groups": [
+      [
+        "Donuts",
+        "Yeast_Raised"
+      ],
+      [
+        "Donuts",
+        "Cake_Donuts"
+      ],
+      [
+        "Beverages",
+        "Hot_Coffee"
+      ],
+      [
+        "Beverages",
+        "Iced_Drinks"
+      ]
+    ],
+    "customer_tiers": [
+      "Occasional",
+      "Regular",
+      "VIP_Glaze_Club"
+    ],
+    "employee_roles": [
+      "Crew_Member",
+      "Shift_Lead",
+      "Store_Manager"
+    ],
+    "channels": [
+      "In_Store",
+      "Drive_Thru",
+      "Mobile_App"
+    ]
   }
 }
