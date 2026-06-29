@@ -1,0 +1,41 @@
+Entity_ID,Continent,Region,Store,City,Country_Code,Latitude,Longitude
+101,North America,East Coast,Rosedale Store,Rosedale,US,39.3201,-76.5155
+102,North America,East Coast,Gainesville Store,Gainesville,US,29.6516,-82.3248
+103,North America,East Coast,Pekin Store,Pekin,US,40.5675,-89.6407
+104,North America,East Coast,Coralville Store,Coralville,US,41.6764,-91.5804
+105,North America,East Coast,Sterling Store,Sterling,US,39.0062,-77.4286
+106,North America,East Coast,Leland Store,Leland,US,34.2563,-78.0447
+107,North America,East Coast,Fort Washington Store,Fort Washington,US,38.7073,-77.023
+108,North America,East Coast,Aurora Store,Aurora,US,39.7294,-104.8319
+109,North America,East Coast,Murray Store,Murray,US,36.6103,-88.3148
+110,North America,East Coast,Bothell Store,Bothell,US,47.7623,-122.2054
+111,North America,West Coast,Norwalk Store,Norwalk,US,41.2426,-82.6157
+112,North America,West Coast,Lutz Store,Lutz,US,28.1511,-82.4615
+113,North America,West Coast,Kendall Store,Kendall,US,25.6793,-80.3173
+114,North America,West Coast,Estelle Store,Estelle,US,29.8458,-90.1067
+115,North America,West Coast,Front Royal Store,Front Royal,US,38.9182,-78.1944
+116,North America,West Coast,East Haven Store,East Haven,US,41.2762,-72.8684
+117,North America,West Coast,Mira Mesa Store,Mira Mesa,US,32.9156,-117.1439
+118,North America,West Coast,Sunnyside Store,Sunnyside,US,46.3237,-120.0087
+119,North America,West Coast,Gainesville Store,Gainesville,US,29.6516,-82.3248
+120,North America,West Coast,Odessa Store,Odessa,US,31.8457,-102.3676
+121,Europe,UK,Longview Store,Longview,US,32.5007,-94.7405
+122,Europe,UK,Aurora Store,Aurora,US,39.7294,-104.8319
+123,Europe,UK,Lakewood Store,Lakewood,US,41.482,-81.7982
+124,Europe,UK,Mechanicsville Store,Mechanicsville,US,37.6088,-77.3733
+125,Europe,UK,Kaukauna Store,Kaukauna,US,44.278,-88.272
+126,Europe,UK,Saratoga Springs Store,Saratoga Springs,US,40.3491,-111.9047
+127,Europe,UK,South Lawndale Store,South Lawndale,US,41.8436,-87.7125
+128,Europe,UK,Vestavia Hills Store,Vestavia Hills,US,33.4487,-86.7878
+129,Europe,UK,Muskogee Store,Muskogee,US,35.7479,-95.3697
+130,Europe,UK,Norwalk Store,Norwalk,US,41.2426,-82.6157
+131,Europe,Germany,Rosemount Store,Rosemount,US,44.7394,-93.1258
+132,Europe,Germany,South Lawndale Store,South Lawndale,US,41.8436,-87.7125
+133,Europe,Germany,Ada Store,Ada,US,34.7745,-96.6783
+134,Europe,Germany,Front Royal Store,Front Royal,US,38.9182,-78.1944
+135,Europe,Germany,Lino Lakes Store,Lino Lakes,US,45.1602,-93.0888
+136,Europe,Germany,Fort Washington Store,Fort Washington,US,38.7073,-77.023
+137,Europe,Germany,Estelle Store,Estelle,US,29.8458,-90.1067
+138,Europe,Germany,Far Rockaway Store,Far Rockaway,US,40.6054,-73.7551
+139,Europe,Germany,Shreveport Store,Shreveport,US,32.5251,-93.7502
+140,Europe,Germany,Jersey City Store,Jersey City,US,40.7282,-74.0776

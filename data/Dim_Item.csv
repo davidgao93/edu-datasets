@@ -1,0 +1,41 @@
+Item_ID,Department,Category,Product
+2001,Electronics,Computers,Computers Basic
+2002,Electronics,Computers,Computers Standard
+2003,Electronics,Computers,Computers Advanced
+2004,Electronics,Computers,Computers Premium
+2005,Electronics,Computers,Computers Enterprise
+2006,Electronics,Computers,Computers Essential
+2007,Electronics,Computers,Computers Plus
+2008,Electronics,Computers,Computers Pro
+2009,Electronics,Computers,Computers Ultimate
+2010,Electronics,Computers,Computers Signature
+2011,Electronics,Mobile Devices,Mobile Devices Basic
+2012,Electronics,Mobile Devices,Mobile Devices Standard
+2013,Electronics,Mobile Devices,Mobile Devices Advanced
+2014,Electronics,Mobile Devices,Mobile Devices Premium
+2015,Electronics,Mobile Devices,Mobile Devices Enterprise
+2016,Electronics,Mobile Devices,Mobile Devices Essential
+2017,Electronics,Mobile Devices,Mobile Devices Plus
+2018,Electronics,Mobile Devices,Mobile Devices Pro
+2019,Electronics,Mobile Devices,Mobile Devices Ultimate
+2020,Electronics,Mobile Devices,Mobile Devices Signature
+2021,Apparel,Menswear,Menswear Basic
+2022,Apparel,Menswear,Menswear Standard
+2023,Apparel,Menswear,Menswear Advanced
+2024,Apparel,Menswear,Menswear Premium
+2025,Apparel,Menswear,Menswear Enterprise
+2026,Apparel,Menswear,Menswear Essential
+2027,Apparel,Menswear,Menswear Plus
+2028,Apparel,Menswear,Menswear Pro
+2029,Apparel,Menswear,Menswear Ultimate
+2030,Apparel,Menswear,Menswear Signature
+2031,Apparel,Womenswear,Womenswear Basic
+2032,Apparel,Womenswear,Womenswear Standard
+2033,Apparel,Womenswear,Womenswear Advanced
+2034,Apparel,Womenswear,Womenswear Premium
+2035,Apparel,Womenswear,Womenswear Enterprise
+2036,Apparel,Womenswear,Womenswear Essential
+2037,Apparel,Womenswear,Womenswear Plus
+2038,Apparel,Womenswear,Womenswear Pro
+2039,Apparel,Womenswear,Womenswear Ultimate
+2040,Apparel,Womenswear,Womenswear Signature
